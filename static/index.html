@@ -308,8 +308,16 @@
         // 阻止輸入框點擊導致卡片關閉/動作
         document.getElementById('wish-input').addEventListener('click', (e) => e.stopPropagation());
 
+        let isComposing = false;
         const input = document.getElementById('wish-input');
+        input.addEventListener('compositionstart', () => {
+            isComposing = true; // 開始組字
+        });
+        input.addEventListener('compositionend', () => {
+            isComposing = false; // 組字完成
+        });
         input.addEventListener('keydown', function (event) {
+            if (isComposing) return; // 組字期間不送出
             if (event.key === "Enter") {
                 event.preventDefault(); // 防止換行或表單提交
                 sendWish();
@@ -336,7 +344,7 @@
             serverWishes = await res.json();
 
             setInterval(() => {
-                if (activeDanmaku > 60) return 
+                if (activeDanmaku > 60) return
                 const allWishes = danmakuTexts.concat(customWishes, serverWishes);
                 const randomText = allWishes[Math.floor(Math.random() * allWishes.length)];
                 createDanmaku(randomText);
@@ -345,7 +353,7 @@
             fireworks();
         }
 
-        const lanes = 8; 
+        const lanes = 8;
         let laneUsage = new Array(lanes).fill(0);
 
         let activeDanmaku = 0;
