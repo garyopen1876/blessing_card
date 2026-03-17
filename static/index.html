@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神秘邀請函</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #d4af37;
+            --bg: #121212;
+            --card-bg: #fdfcf0;
+            --accent: #c0392b;
+            /* 定義基礎尺寸變數，便於 RWD 縮放 */
+            --env-w: 320px;
+            --env-h: 210px;
+        }
+
+        @media (min-width: 600px) {
+            :root {
+                --env-w: 450px;
+                --env-h: 300px;
+            }
+        }
+
+        body {
+            background-color: var(--bg);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: "Noto Serif TC", serif;
+        }
+
+        .envelope-wrapper {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.5s ease;
+            width: var(--env-w);
+            height: var(--env-h);
+        }
+
+        .envelope-wrapper:hover {
+            transform: scale(1.02);
+        }
+
+        .envelope {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #4a4a4a;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        .envelope::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            z-index: 4;
+            border-left: calc(var(--env-w) / 2) solid transparent;
+            border-right: calc(var(--env-w) / 2) solid transparent;
+            border-top: calc(var(--env-h) / 2) solid #5a5a5a;
+            transform-origin: top;
+            transition: transform 0.5s 0.3s;
+        }
+
+        .envelope-wrapper.open .envelope::before {
+            transform: rotateX(180deg);
+            z-index: 0;
+        }
+
+        .wax-seal {
+            position: absolute;
+            /* 這裡從 50% 調高到 42% */
+            top: 48%;
+            left: 50%;
+            /* 調整位移確保完美置中 */
+            transform: translate(-50%, -50%);
+            width: 65px;
+            height: 65px;
+            background: var(--accent);
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            transition: opacity 0.3s;
+            /* 加點質感的邊緣 */
+            border: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .envelope-wrapper.open .wax-seal {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 卡片設定 */
+        .card {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 90%;
+            background: var(--card-bg);
+            z-index: 1;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            box-sizing: border-box;
+            border: 4px double var(--primary);
+            overflow-y: auto;
+            /* 內容過長時可滾動 */
+            opacity: 0.5;
+        }
+
+        /* 卡片展開狀態 */
+        .envelope-wrapper.open .card {
+            width: 90vw;
+            max-width: 500px;
+            height: 80vh;
+            max-height: 700px;
+            bottom: 50%;
+            transform: translate(-50%, 50%);
+            z-index: 10;
+            opacity: 1;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.4);
+            padding: 25px;
+        }
+
+        .card-content {
+            opacity: 0;
+            transition: opacity 0.5s 1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .envelope-wrapper.open .card-content {
+            opacity: 1;
+        }
+
+        .title {
+            color: var(--accent);
+            /* 這裡調大字體 */
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 10px 0;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .stamp {
+            border: 3px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 20px;
+            transform: rotate(-8deg);
+            font-weight: 900;
+            /* 這裡調大字體 */
+            font-size: 1.5rem;
+            margin: 15px 0;
+            display: inline-block;
+        }
+
+        .main-text {
+            font-size: 1.25rem;
+            /* 調大內文字體 */
+            line-height: 1.8;
+            color: #333;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        .info {
+            font-size: 1rem;
+            text-align: left;
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 5px;
+            width: 100%;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .card-image {
+            width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .wish-input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        @media (min-width: 400px) {
+            .title {
+                font-size: 2rem;
+            }
+
+            .stamp {
+                font-size: 1.2rem;
+            }
+
+            .main-text {
+                font-size: 1.1rem;
+            }
+
+            .wish-input-area {
+                flex-direction: row;
+            }
+        }
+
+        #wish-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+        }
+
+        .btn-send {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* 彈幕 */
+        .danmaku-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 99;
+            overflow: hidden;
+        }
+
+        .danmaku {
+            position: absolute;
+            white-space: nowrap;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            animation: move-danmaku linear forwards;
+        }
+
+        @keyframes move-danmaku {
+            from {
+                transform: translateX(100vw);
+            }
+
+            to {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="envelope-wrapper" id="invitation" onclick="openLetter()">
+        <div class="wax-seal">神秘</div>
+        <div class="envelope"></div>
+        <div class="card">
+            <div class="card-content">
+                <h2 class="title">光榮回歸自由</h2>
+                <div class="stamp">刑期屆滿</div>
+                <p class="main-text">
+                    陳某經歷了漫長的「刑期」<br>
+                    終於完成了人生中的一次里程碑 — 成功出獄<br>
+                    為慶祝重獲自由，特此誠摯邀請您來共襄盛舉
+                </p>
+                <div class="info">
+                    📅 2026/03/20 (五)<br>
+                    🕛 12:00 PM<br>
+                    <a href="https://share.google/shYEdBFRwNWNfnRFX" target="_blank"
+                        style="color: #4285F4; text-decoration: none; font-weight: bold;">
+                        📍 史堤克牛排 中清店
+                    </a>
+                </div>
+                <img src="./ttest (1).png" alt="慶祝圖片" class="card-image">
+                <div class="wish-input-area" onclick="event.stopPropagation()">
+                    <input type="text" id="wish-input" placeholder="留下一句祝福... 你單純只是想發射= =那你就瘋狂按吧" maxlength="20">
+                    <button type="button" class="btn-send" onclick="sendWish()">發射 🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const danmakuTexts = ["自由萬歲！", "恭喜陳某！", "終於放出來了", "慶祝重生", "重獲自由"];
+        let customWishes = [];
+        // 阻止輸入框點擊導致卡片關閉/動作
+        document.getElementById('wish-input').addEventListener('click', (e) => e.stopPropagation());
+
+        const input = document.getElementById('wish-input');
+        input.addEventListener('keydown', function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // 防止換行或表單提交
+                sendWish();
+            }
+        });
+
+        async function openLetter() {
+            const inv = document.getElementById('invitation');
+            if (inv.classList.contains('open')) return;
+
+            inv.classList.add('open');
+
+            if (!document.getElementById('danmaku-area')) {
+                const div = document.createElement('div');
+                div.id = 'danmaku-area';
+                div.className = 'danmaku-container';
+                document.body.appendChild(div);
+            }
+
+            let serverWishes = [];
+            const res = await fetch("/list", {
+                method: "GET",
+            }).catch(err => console.error(err));
+            serverWishes = await res.json();
+
+            setInterval(() => {
+                if (activeDanmaku > 60) return 
+                const allWishes = danmakuTexts.concat(customWishes, serverWishes);
+                const randomText = allWishes[Math.floor(Math.random() * allWishes.length)];
+                createDanmaku(randomText);
+            }, 500);
+
+            fireworks();
+        }
+
+        const lanes = 8; 
+        let laneUsage = new Array(lanes).fill(0);
+
+        let activeDanmaku = 0;
+
+        function getRandomColor() {
+            const colors = [
+                '#ffffff', '#ff7675', '#74b9ff',
+                '#55efc4', '#ffeaa7', '#a29bfe'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function createDanmaku(text, isSpecial = false) {
+            const container = document.getElementById('danmaku-area');
+            if (!container) return;
+
+            const el = document.createElement('div');
+            el.className = 'danmaku';
+            el.innerText = text;
+
+            const lane = Math.floor(Math.random() * lanes);
+            const laneHeight = 100 / lanes;
+
+            el.style.top = (lane * laneHeight) + '%';
+
+            const duration = Math.random() * 6 + 4; // 4~10秒
+            el.style.animationDuration = duration + 's';
+
+            el.style.fontSize = isSpecial ? '1.5rem' : '1.1rem';
+            el.style.color = isSpecial ? '#ffeb3b' : getRandomColor();
+
+            container.appendChild(el);
+
+            activeDanmaku++;
+            setTimeout(() => { el.remove(); activeDanmaku--; }, duration * 1000);
+        }
+
+        function sendWish() {
+            confetti({ particleCount: 50, spread: 60 });
+            const input = document.getElementById('wish-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            customWishes.push(text);
+            createDanmaku(text, true);
+            input.value = "";
+
+            fetch("/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            }).catch(err => console.error(err));
+        }
+
+        function fireworks() {
+            const end = Date.now() + 2000;
+            const colors = ['#d4af37', '#c0392b', '#ffffff'];
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: colors
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: colors
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+
+</html>
